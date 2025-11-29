@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   warnOnDuplicateInCategory: true,
   maxUrlsPerSecond: 5,
   maxUrlsPerMinute: 60,
+  duplicatePolicy: "block_category",
 };
 
 let settings = loadSettings();
@@ -21,7 +22,9 @@ let lastSelectedCategory = "Unsorted";
 let appState = {
   links: [],
   categories: [],
+  queue: [],
   next_id: 1,
+  config: {},
 };
 
 let categoryLastActive = {}; // catName -> timestamp (ms)
@@ -32,6 +35,12 @@ let requestsThisMinute = 0;
 let currentSearchQuery = "";
 
 let notificationTimeout = null;
+
+function primaryCategory(link) {
+  if (link.primary_category) return link.primary_category;
+  if (Array.isArray(link.categories) && link.categories.length) return link.categories[0];
+  return "Unsorted";
+}
 
 
 // ---------- SETTINGS HELPERS ----------
@@ -114,10 +123,30 @@ async function fetchDraft() {
   if (!res.ok) return;
   appState = await res.json();
 
+   // sync view defaults with server config
+  if (appState.config?.view_defaults) {
+    settings = { ...settings, ...appState.config.view_defaults };
+    saveSettings();
+  }
+  if (appState.config?.duplicate_policy) {
+    settings.duplicatePolicy = appState.config.duplicate_policy;
+  }
+
+  document.getElementById("duplicate-policy")?.setAttribute("value", appState.config?.duplicate_policy || "block_category");
+  const dupSelect = document.getElementById("duplicate-policy");
+  if (dupSelect) dupSelect.value = appState.config?.duplicate_policy || "block_category";
+  const orderSelect = document.getElementById("category-order");
+  if (orderSelect) orderSelect.value = appState.config?.category_order_strategy || "recent";
+  const sec = document.getElementById("limit-second");
+  const minute = document.getElementById("limit-minute");
+  if (sec) sec.value = appState.config?.rate_limit_per_second || settings.maxUrlsPerSecond;
+  if (minute) minute.value = appState.config?.rate_limit_per_minute || settings.maxUrlsPerMinute;
+
   appState.categories.forEach((c) => {
     if (!(c in categoryLastActive)) categoryLastActive[c] = 0;
   });
 
+  renderQueue();
   render();
 }
 
@@ -148,10 +177,15 @@ async function apiAddLink(url, category) {
     return;
   }
 
-  const link = await res.json();
-  touchCategory(link.category || category);
+  const payload = await res.json();
+  const link = payload.link || payload;
+  touchCategory(primaryCategory(link) || category);
   await fetchDraft();
-  showToast("Link added.", "success");
+  if (payload.duplicate) {
+    showToast("Link already existed – added to category.", "info");
+  } else {
+    showToast("Link added to queue.", "success");
+  }
 }
 
 async function deleteLink(id) {
@@ -217,8 +251,14 @@ function isDuplicateInCategory(rawUrl, category) {
   const norm = normalizeYouTubeUrl(rawUrl);
   if (!norm) return false;
   return appState.links.some(
-    (l) => l.category === category && l.normalized_url === norm
+    (l) => (l.categories || []).includes(category) && l.normalized_url === norm
   );
+}
+
+function isGlobalDuplicate(rawUrl) {
+  const norm = normalizeYouTubeUrl(rawUrl);
+  if (!norm) return false;
+  return appState.links.some((l) => l.normalized_url === norm);
 }
 
 
@@ -226,6 +266,7 @@ function isDuplicateInCategory(rawUrl, category) {
 
 function enqueueUrl(url, category) {
   pendingQueue.push({ url, category });
+  renderQueue();
 }
 
 function setupQueueProcessor() {
@@ -248,12 +289,13 @@ function setupQueueProcessor() {
 
     const { url, category } = item;
 
-    if (
-      settings.warnOnDuplicateInCategory &&
-      isDuplicateInCategory(url, category)
-    ) {
+    const policy = settings.duplicatePolicy || "block_category";
+    if (policy === "block_category" && isDuplicateInCategory(url, category)) {
       showToast("Duplicate in this category – skipped.", "error");
       return;
+    }
+    if (policy === "warn_global" && isGlobalDuplicate(url)) {
+      showToast("Duplicate exists elsewhere — adding anyway.", "info");
     }
 
     try {
@@ -262,9 +304,36 @@ function setupQueueProcessor() {
       console.error(err);
       showToast("Error while adding link.", "error");
     }
+    renderQueue();
   }
 
   setInterval(processOne, 50); // ~20 ops/sec max
+}
+
+function renderQueue() {
+  const list = document.getElementById("queue-list");
+  const count = document.getElementById("queue-count");
+  if (!list || !count) return;
+  list.innerHTML = "";
+
+  const combined = [
+    ...pendingQueue.map((q) => ({ url: q.url, status: "local" })),
+    ...(appState.queue || []),
+  ];
+  count.textContent = combined.length.toString();
+  combined.forEach((q) => {
+    const row = document.createElement("div");
+    row.className = "flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded px-2 py-1";
+    const url = document.createElement("span");
+    url.className = "truncate w-40";
+    url.textContent = q.url || "pending";
+    const badge = document.createElement("span");
+    badge.className = "text-[10px] text-slate-400";
+    badge.textContent = q.status || "waiting";
+    row.appendChild(url);
+    row.appendChild(badge);
+    list.appendChild(row);
+  });
 }
 
 
@@ -338,8 +407,23 @@ function render() {
 
   const cats = [...appState.categories];
 
-  // sort categories by "last active" desc; fallback alpha
+  const counts = {};
+  appState.links.forEach((l) => {
+    (l.categories || [primaryCategory(l)]).forEach((cat) => {
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+  });
+
+  const strategy = document.getElementById("category-order")?.value || appState.config?.category_order_strategy || "recent";
   cats.sort((a, b) => {
+    if (strategy === "alphabetical") return a.localeCompare(b);
+    if (strategy === "most_items") return (counts[b] || 0) - (counts[a] || 0);
+    if (strategy === "pinned_first") {
+      const pinned = appState.config?.pinned_categories || [];
+      const ap = pinned.includes(a);
+      const bp = pinned.includes(b);
+      if (ap !== bp) return ap ? -1 : 1;
+    }
     const ta = categoryLastActive[a] || 0;
     const tb = categoryLastActive[b] || 0;
     if (tb !== ta) return tb - ta;
@@ -359,8 +443,11 @@ function render() {
   // Build category → links mapping
   const byCategory = {};
   appState.links.forEach((l) => {
-    if (!byCategory[l.category]) byCategory[l.category] = [];
-    byCategory[l.category].push(l);
+    const catsForLink = l.categories && l.categories.length ? l.categories : [primaryCategory(l)];
+    catsForLink.forEach((cat) => {
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(l);
+    });
   });
 
   const viewMode = settings.viewMode || "grid";
@@ -516,7 +603,7 @@ function renderGridMode(card, cat, normal, shorts) {
         const opt = document.createElement("option");
         opt.value = c;
         opt.textContent = c;
-        if (c === link.category) opt.selected = true;
+        if ((link.categories || []).includes(c) || primaryCategory(link) === c) opt.selected = true;
         catSelect.appendChild(opt);
       });
       catSelect.addEventListener("change", () => {
@@ -661,7 +748,7 @@ function renderListMode(card, cat, links) {
       const opt = document.createElement("option");
       opt.value = c;
       opt.textContent = c;
-      if (c === link.category) opt.selected = true;
+      if ((link.categories || []).includes(c) || primaryCategory(link) === c) opt.selected = true;
       catSelect.appendChild(opt);
     });
     catSelect.addEventListener("change", () => {
@@ -792,6 +879,40 @@ function setupControls() {
     });
   }
 
+  document.getElementById("duplicate-policy")?.addEventListener("change", async (e) => {
+    settings.duplicatePolicy = e.target.value;
+    saveSettings();
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ duplicate_policy: e.target.value }),
+    });
+    showToast("Duplicate policy saved", "success");
+  });
+
+  document.getElementById("category-order")?.addEventListener("change", async (e) => {
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category_order_strategy: e.target.value }),
+    });
+    render();
+  });
+
+  document.getElementById("save-prefs")?.addEventListener("click", async () => {
+    const sec = document.getElementById("limit-second");
+    const minute = document.getElementById("limit-minute");
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rate_limit_per_second: Number(sec?.value || 20),
+        rate_limit_per_minute: Number(minute?.value || 150),
+      }),
+    });
+    showToast("Rate limits updated", "success");
+  });
+
   const columnsRange = document.getElementById("grid-columns-range");
   const columnsLabel = document.getElementById("grid-columns-value");
   if (columnsRange && columnsLabel) {
@@ -864,4 +985,5 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupDragAndPaste();
   setupQueueProcessor();
   await fetchDraft();
+  setInterval(fetchDraft, 5000);
 });
