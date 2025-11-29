@@ -72,17 +72,17 @@ function showToast(message, type = "info") {
     box = document.createElement("div");
     box.id = "toast-box";
     box.className =
-      "fixed bottom-4 right-4 z-50 max-w-xs bg-slate-900 border text-xs text-slate-50 rounded-lg px-3 py-2 shadow-lg shadow-slate-900/70 transition-opacity";
+      "fixed bottom-4 right-4 z-50 max-w-xs glass-strong text-xs text-slate-800 rounded-xl px-4 py-3 shadow-xl transition-opacity";
     document.body.appendChild(box);
   }
 
   box.textContent = message;
 
-  box.classList.remove("border-slate-700", "border-red-500", "border-emerald-500");
+  box.classList.remove("border-slate-700", "border-red-500", "border-emerald-500", "text-rose-700", "text-emerald-700");
 
-  if (type === "error") box.classList.add("border-red-500");
-  else if (type === "success") box.classList.add("border-emerald-500");
-  else box.classList.add("border-slate-700");
+  if (type === "error") box.classList.add("border-red-500", "text-rose-700");
+  else if (type === "success") box.classList.add("border-emerald-500", "text-emerald-700");
+  else box.classList.add("border-slate-300");
 
   box.style.opacity = "1";
 
@@ -99,16 +99,15 @@ function setTheme(theme) {
   const root = document.getElementById("app-root");
   if (!root) return;
 
-  const base = "min-h-screen flex flex-col text-slate-100";
+  const base = "min-h-screen flex flex-col text-slate-900";
   let themeClasses = "";
 
   if (theme === "glass") {
-    themeClasses =
-      "bg-slate-950 bg-[radial-gradient(circle_at_top,_#1e293b,_#020617_60%)]";
+    themeClasses = ""; // background handled by page-level gradients
   } else if (theme === "neon") {
-    themeClasses = "bg-gradient-to-br from-purple-900 via-slate-950 to-sky-900";
+    themeClasses = "bg-gradient-to-br from-purple-900 via-slate-950 to-sky-900 text-slate-100";
   } else if (theme === "tiktok") {
-    themeClasses = "bg-black";
+    themeClasses = "bg-black text-slate-100";
   }
 
   root.className = base + " " + themeClasses;
@@ -402,6 +401,9 @@ function render() {
   const container = document.getElementById("links-container");
   if (!categorySelect || !container) return;
 
+  document.getElementById("mini-total")?.textContent = appState.links.length.toString();
+  document.getElementById("mini-cats")?.textContent = appState.categories.length.toString();
+
   // Categories order
   categorySelect.innerHTML = "";
 
@@ -463,17 +465,17 @@ function render() {
 
     const card = document.createElement("div");
     card.className =
-      "bg-slate-900/80 border border-slate-800 rounded-xl p-3 shadow-md shadow-slate-900/40 mb-3";
+      "glass-strong border border-white/40 rounded-2xl p-4 shadow-lg soft-card mb-3 transition duration-150";
 
     const header = document.createElement("div");
     header.className = "flex items-center justify-between mb-2";
 
     const title = document.createElement("h2");
-    title.className = "text-sm font-semibold";
+    title.className = "text-sm font-semibold text-slate-800";
     title.textContent = `${cat} (${sorted.length})`;
 
     const sortLabel = document.createElement("div");
-    sortLabel.className = "text-[10px] text-slate-400";
+    sortLabel.className = "text-[11px] text-slate-500";
     const mode = settings.sortMode;
     if (mode === "newest") sortLabel.textContent = "Newest → oldest";
     else if (mode === "oldest") sortLabel.textContent = "Oldest → newest";
@@ -510,14 +512,14 @@ function renderGridMode(card, cat, normal, shorts) {
     normal.forEach((link) => {
       const item = document.createElement("div");
       item.className =
-        "flex flex-col bg-slate-950/70 rounded-lg overflow-hidden border border-slate-800/70";
+        "flex flex-col glass rounded-2xl overflow-hidden border border-white/40 transition hover:-translate-y-0.5 hover:shadow-xl";
 
       // thumbnail
       const thumbWrap = document.createElement("a");
       thumbWrap.href = link.original_url || link.normalized_url;
       thumbWrap.target = "_blank";
       thumbWrap.rel = "noopener noreferrer";
-      thumbWrap.className = "relative block aspect-video bg-slate-800";
+      thumbWrap.className = "relative block aspect-video bg-gradient-to-br from-slate-200 via-white to-slate-300 overflow-hidden";
 
       if (link.thumbnail_url) {
         const img = document.createElement("img");
@@ -527,11 +529,15 @@ function renderGridMode(card, cat, normal, shorts) {
         thumbWrap.appendChild(img);
       }
 
+      const overlay = document.createElement("div");
+      overlay.className = "absolute inset-0 bg-gradient-to-t from-black/35 to-transparent";
+      thumbWrap.appendChild(overlay);
+
       // duration badge
       if (link.duration) {
         const badge = document.createElement("div");
         badge.className =
-          "absolute bottom-1 right-1 bg-black/80 text-[10px] px-1 py-[1px] rounded";
+          "absolute bottom-2 right-2 bg-white/90 text-[10px] text-slate-800 px-2 py-[3px] rounded-full shadow";
         badge.textContent = link.duration;
         thumbWrap.appendChild(badge);
       }
@@ -548,12 +554,12 @@ function renderGridMode(card, cat, normal, shorts) {
 
       // bottom area
       const bottom = document.createElement("div");
-      bottom.className = "flex gap-2 px-2 py-2";
+      bottom.className = "flex gap-2 px-3 py-3";
 
       // avatar
       const avatar = document.createElement("img");
       avatar.className =
-        "w-7 h-7 rounded-full object-cover flex-shrink-0 bg-slate-700";
+        "w-9 h-9 rounded-full object-cover flex-shrink-0 bg-slate-200 shadow-inner";
       avatar.src =
         link.channel_avatar ||
         "https://www.youtube.com/s/desktop/fe4547c5/img/favicon_144x144.png";
@@ -564,12 +570,12 @@ function renderGridMode(card, cat, normal, shorts) {
 
       const titleEl = document.createElement("div");
       titleEl.className =
-        "text-xs font-medium text-slate-50 leading-tight line-clamp-2";
+        "text-sm font-semibold text-slate-900 leading-tight line-clamp-2";
       titleEl.textContent = link.title || "(no title)";
       textBox.appendChild(titleEl);
 
       const metaEl = document.createElement("div");
-      metaEl.className = "text-[10px] text-slate-400 truncate";
+      metaEl.className = "text-[11px] text-slate-500 truncate";
       metaEl.textContent = link.author
         ? `${link.author} • ${link.normalized_url}`
         : link.normalized_url;
@@ -578,7 +584,7 @@ function renderGridMode(card, cat, normal, shorts) {
       // tag editor
       const tagBox = document.createElement("input");
       tagBox.className =
-        "w-full mt-1 text-[10px] px-1 py-[2px] bg-slate-950 border border-slate-700 rounded";
+        "w-full mt-2 text-[11px] px-2 py-[6px] glass rounded-lg focus-ring";
       tagBox.placeholder = "tags (comma separated)";
       tagBox.value = (link.tags || []).join(", ");
       tagBox.addEventListener("change", async () => {
@@ -594,11 +600,11 @@ function renderGridMode(card, cat, normal, shorts) {
 
       const controls = document.createElement("div");
       controls.className =
-        "mt-1 flex items-center gap-1 justify-between text-[10px]";
+        "mt-2 flex items-center gap-2 justify-between text-[11px]";
 
       const catSelect = document.createElement("select");
       catSelect.className =
-        "bg-slate-950 border border-slate-700 rounded px-1 py-[2px] text-[10px]";
+        "glass rounded-lg px-2 py-[6px] text-[11px] focus-ring";
       appState.categories.forEach((c) => {
         const opt = document.createElement("option");
         opt.value = c;
@@ -612,7 +618,7 @@ function renderGridMode(card, cat, normal, shorts) {
 
       const delBtn = document.createElement("button");
       delBtn.className =
-        "px-2 py-[3px] rounded bg-red-600 hover:bg-red-500 text-[10px]";
+        "px-3 py-[6px] rounded-lg bg-gradient-to-r from-rose-400 to-rose-500 text-white text-[11px] shadow";
       delBtn.textContent = "✕";
       delBtn.title = "Delete";
       delBtn.addEventListener("click", () => deleteLink(link.id));
@@ -634,13 +640,13 @@ function renderGridMode(card, cat, normal, shorts) {
   // Shorts row
   if (shorts.length) {
     const shortsTitle = document.createElement("div");
-    shortsTitle.className = "mt-2 text-[11px] text-slate-300";
+    shortsTitle.className = "mt-3 text-[12px] text-slate-600 font-semibold";
     shortsTitle.textContent = "Shorts";
     card.appendChild(shortsTitle);
 
     const row = document.createElement("div");
     row.className =
-      "mt-1 flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-700";
+      "mt-2 flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300";
 
     shorts.forEach((link) => {
       const s = document.createElement("a");
@@ -648,7 +654,7 @@ function renderGridMode(card, cat, normal, shorts) {
       s.target = "_blank";
       s.rel = "noopener noreferrer";
       s.className =
-        "flex-shrink-0 w-32 bg-slate-950/70 rounded-lg overflow-hidden border border-slate-800/70";
+        "flex-shrink-0 w-32 glass rounded-2xl overflow-hidden border border-white/40 hover:-translate-y-0.5 transition shadow";
 
       if (link.thumbnail_url) {
         const img = document.createElement("img");
@@ -660,7 +666,7 @@ function renderGridMode(card, cat, normal, shorts) {
 
       const label = document.createElement("div");
       label.className =
-        "px-1 py-1 text-[10px] text-slate-100 line-clamp-2 bg-slate-950/90";
+        "px-2 py-2 text-[11px] text-slate-800 line-clamp-2 bg-white/70";
       label.textContent = link.title || "(no title)";
       s.appendChild(label);
 
@@ -678,13 +684,13 @@ function renderListMode(card, cat, links) {
   links.forEach((link) => {
     const row = document.createElement("div");
     row.className =
-      "flex items-center gap-2 bg-slate-950/70 border border-slate-800/70 rounded-lg px-2 py-2";
+      "flex items-center gap-3 glass rounded-xl px-3 py-3 border border-white/40 shadow-sm";
 
     const thumb = document.createElement("a");
     thumb.href = link.original_url || link.normalized_url;
     thumb.target = "_blank";
     thumb.rel = "noopener noreferrer";
-    thumb.className = "flex-shrink-0 w-20 h-12 bg-slate-800 overflow-hidden rounded";
+    thumb.className = "flex-shrink-0 w-24 h-14 bg-white/60 overflow-hidden rounded-xl shadow";
 
     if (link.thumbnail_url) {
       const img = document.createElement("img");
@@ -701,12 +707,12 @@ function renderListMode(card, cat, links) {
 
     const titleEl = document.createElement("div");
     titleEl.className =
-      "text-xs font-medium text-slate-50 leading-tight truncate";
+      "text-sm font-semibold text-slate-900 leading-tight truncate";
     titleEl.textContent = link.title || "(no title)";
     middle.appendChild(titleEl);
 
     const metaEl = document.createElement("div");
-    metaEl.className = "text-[10px] text-slate-400 truncate";
+    metaEl.className = "text-[11px] text-slate-500 truncate";
     metaEl.textContent = link.author
       ? `${link.author} • ${link.normalized_url}`
       : link.normalized_url;
@@ -714,7 +720,7 @@ function renderListMode(card, cat, links) {
 
     const tagBox = document.createElement("input");
     tagBox.className =
-      "w-full mt-1 text-[10px] px-1 py-[2px] bg-slate-950 border border-slate-700 rounded";
+      "w-full mt-2 text-[11px] px-2 py-[6px] glass rounded-lg focus-ring";
     tagBox.placeholder = "tags (comma separated)";
     tagBox.value = (link.tags || []).join(", ");
     tagBox.addEventListener("change", async () => {
@@ -731,19 +737,19 @@ function renderListMode(card, cat, links) {
     row.appendChild(middle);
 
     const right = document.createElement("div");
-    right.className = "flex flex-col items-end gap-1 flex-shrink-0";
+    right.className = "flex flex-col items-end gap-2 flex-shrink-0";
 
     if (link.duration) {
       const d = document.createElement("div");
       d.className =
-        "text-[10px] px-1 py-[1px] rounded bg-black/70 text-slate-100";
+        "text-[11px] px-2 py-[3px] rounded-full bg-white/80 text-slate-800 shadow";
       d.textContent = link.duration;
       right.appendChild(d);
     }
 
     const catSelect = document.createElement("select");
     catSelect.className =
-      "bg-slate-950 border border-slate-700 rounded px-1 py-[2px] text-[10px]";
+      "glass rounded-lg px-2 py-[6px] text-[11px] focus-ring";
     appState.categories.forEach((c) => {
       const opt = document.createElement("option");
       opt.value = c;
@@ -757,7 +763,7 @@ function renderListMode(card, cat, links) {
 
     const delBtn = document.createElement("button");
     delBtn.className =
-      "px-2 py-[3px] rounded bg-red-600 hover:bg-red-500 text-[10px]";
+      "px-3 py-[6px] rounded-lg bg-gradient-to-r from-rose-400 to-rose-500 text-white text-[11px] shadow";
     delBtn.textContent = "✕";
     delBtn.title = "Delete";
     delBtn.addEventListener("click", () => deleteLink(link.id));
@@ -838,6 +844,28 @@ function setupControls() {
     });
 
   document.getElementById("save-main-btn")?.addEventListener("click", saveMain);
+
+  const advancedPanel = document.getElementById("advanced-panel");
+  const toggleAdvanced = document.getElementById("toggle-advanced");
+  if (advancedPanel && toggleAdvanced) {
+    let open = true;
+    toggleAdvanced.textContent = "Hide";
+    toggleAdvanced.addEventListener("click", () => {
+      open = !open;
+      advancedPanel.classList.toggle("hidden", !open);
+      toggleAdvanced.textContent = open ? "Hide" : "Show";
+    });
+  }
+
+  const resetBtn = document.getElementById("reset-filters-btn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      currentSearchQuery = "";
+      settings.sortMode = "newest";
+      saveSettings();
+      render();
+    });
+  }
 
   document
     .getElementById("export-json-btn")
