@@ -322,12 +322,12 @@ function renderQueue() {
   count.textContent = combined.length.toString();
   combined.forEach((q) => {
     const row = document.createElement("div");
-    row.className = "flex items-center justify-between glass rounded-xl px-3 py-2 border border-white/40";
+    row.className = "flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded px-2 py-1";
     const url = document.createElement("span");
-    url.className = "truncate w-40 text-[12px] text-slate-800";
+    url.className = "truncate w-40";
     url.textContent = q.url || "pending";
     const badge = document.createElement("span");
-    badge.className = "text-[11px] text-slate-600";
+    badge.className = "text-[10px] text-slate-400";
     badge.textContent = q.status || "waiting";
     row.appendChild(url);
     row.appendChild(badge);
