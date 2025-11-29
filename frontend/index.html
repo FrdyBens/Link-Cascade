@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <title>LinkCascade • Pastel Glass</title>
@@ -45,6 +45,8 @@
     @keyframes float { from { transform: translateY(0px) scale(1); } to { transform: translateY(-12px) scale(1.03); } }
   </style>
 </head>
+<body class="h-full text-slate-50 font-sans antialiased" data-theme="glass">
+<div class="app-bg min-h-screen flex flex-col relative overflow-hidden">
 
 
 <body class="min-h-screen text-slate-900">
@@ -101,7 +103,755 @@
     </div>
   </header>
 
+  <!-- Quick controls (fullscreen overlay) -->
+  <div id="quickControls"
+       class="fixed left-1/2 top-4 -translate-x-1/2 z-40 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="glass-card rounded-3xl px-4 py-2 flex items-center gap-3 shadow-[0_0_35px_rgba(15,23,42,0.9)]">
+      <span class="text-[10px] uppercase tracking-[0.18em] text-slate-300/80">
+        Quick Controls
+      </span>
+      <div class="flex items-center gap-1">
+        <button type="button"
+                class="theme-cycle inline-flex items-center justify-center h-7 px-3 rounded-2xl text-[11px] font-medium bg-cyan-500/15 border border-cyan-400/60 hover:bg-cyan-500/25 transition-all">
+          Cycle Theme
+        </button>
+        <button type="button"
+                class="inline-flex items-center justify-center h-7 px-3 rounded-2xl text-[11px] font-medium bg-slate-100 text-slate-900 hover:bg-slate-200 transition-all exit-fullscreen-btn">
+          Exit
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Main layout -->
+  <main class="relative z-10 flex-1 flex flex-col px-4 pb-6">
+    <div class="layout-main flex flex-col lg:flex-row gap-4 h-full">
+      <!-- Sidebar -->
+      <aside class="sidebar glass-card rounded-3xl p-3 sm:p-4 lg:w-80 flex flex-col gap-3 shadow-xl shadow-black/40">
+        <!-- Search -->
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <span class="pointer-events-none absolute inset-y-0 left-2 flex items-center">
+              <span class="w-4 h-4 rounded-full border border-slate-500/80 flex items-center justify-center">
+                <span class="w-1 h-1 rounded-full bg-slate-400/90"></span>
+              </span>
+            </span>
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Live filter…"
+              class="w-full pl-8 pr-3 py-1.5 text-xs rounded-2xl bg-slate-950/50 border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-cyan-400/70 focus:border-cyan-400/80 placeholder:text-slate-500/80 text-slate-100/90"
+            />
+          </div>
+          <button id="saveLibraryBtn"
+                  class="inline-flex items-center justify-center h-8 w-8 rounded-2xl bg-emerald-500/15 border border-emerald-400/70 hover:bg-emerald-500/25 transition-all text-emerald-200 text-xs font-medium">
+            ⟳
+          </button>
+        </div>
+
+        <!-- Categories -->
+        <section class="rounded-2xl bg-slate-950/40 border border-slate-700/80 px-3 py-2.5 flex flex-col gap-2.5">
+          <header class="flex items-center justify-between gap-2 text-[11px]">
+            <span class="uppercase tracking-[0.2em] text-slate-400/90">
+              Categories
+            </span>
+            <span class="text-[10px] text-slate-400/80">
+              drag to reorder
+            </span>
+          </header>
+
+          <ul id="categoryList" class="space-y-1.5 text-xs">
+            <!-- populated via JS -->
+          </ul>
+
+          <div class="flex items-center gap-2 mt-1">
+            <input
+              id="newCategoryInput"
+              type="text"
+              placeholder="Add category…"
+              class="flex-1 px-2 py-1 text-[11px] rounded-xl bg-slate-900/80 border border-slate-700/80 focus:outline-none focus:ring-1 focus:ring-cyan-400/80 text-slate-100 placeholder:text-slate-500"
+            />
+            <button id="addCategoryBtn"
+                    class="inline-flex items-center justify-center h-7 px-2 rounded-xl bg-cyan-500/20 border border-cyan-400/70 text-[11px] font-medium text-cyan-100 hover:bg-cyan-500/30 transition-all">
+              +
+            </button>
+          </div>
+
+          <div class="mt-1 flex flex-col gap-2">
+            <label class="flex flex-col gap-1 text-[11px] text-slate-300/90">
+              Default category
+              <select id="defaultCategorySelect"
+                      class="mt-0.5 text-[11px] rounded-xl bg-slate-900/80 border border-slate-700/80 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-400/80">
+              </select>
+            </label>
+
+            <label class="flex flex-col gap-1 text-[11px] text-slate-300/90">
+              Duplicate handling
+              <select id="duplicateHandling"
+                      class="mt-0.5 text-[11px] rounded-xl bg-slate-900/80 border border-slate-700/80 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-400/80">
+                <option value="warn">Warn &amp; keep</option>
+                <option value="ignore">Ignore silently</option>
+                <option value="block">Block add</option>
+                <option value="allow">Always allow</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <!-- Sorting / layout / rate limit -->
+        <section class="rounded-2xl bg-slate-950/40 border border-slate-700/80 px-3 py-2.5 flex flex-col gap-2.5">
+          <header class="flex items-center justify-between gap-2 text-[11px]">
+            <span class="uppercase tracking-[0.2em] text-slate-400/90">
+              Layout / Sort
+            </span>
+          </header>
+
+          <label class="flex flex-col gap-1 text-[11px] text-slate-300/90">
+            Sort by
+            <select id="sortSelect"
+                    class="mt-0.5 text-[11px] rounded-xl bg-slate-900/80 border border-slate-700/80 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-400/80">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="az">Title A → Z</option>
+              <option value="za">Title Z → A</option>
+              <option value="duration">Duration</option>
+              <option value="channel">Channel</option>
+            </select>
+          </label>
+
+          <div class="flex flex-col gap-1 text-[11px]">
+            <div class="flex items-center justify-between text-slate-300/90">
+              <span>Cards per row</span>
+              <span id="cardsPerRowLabel" class="text-cyan-300 font-medium">4</span>
+            </div>
+            <input
+              id="cardsPerRowSlider"
+              type="range"
+              min="2" max="10" value="4"
+              class="w-full accent-cyan-400 cursor-pointer"
+            />
+          </div>
+
+          <div class="flex items-center justify-between mt-1 text-[11px]">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-300/90">Multi-category mode</span>
+              <button id="multiCategoryToggle"
+                      class="relative inline-flex h-5 w-9 rounded-full border border-slate-600/80 bg-slate-900/80 transition-colors duration-200">
+                <span class="toggle-handle absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-slate-400 transition-transform duration-200"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1 text-[11px] mt-1">
+            <label class="flex items-center justify-between gap-2">
+              <span class="text-slate-300/90">Rate limit (req/min)</span>
+              <input
+                id="rateLimitInput"
+                type="number"
+                value="30"
+                min="1"
+                class="w-16 px-1.5 py-1 rounded-lg bg-slate-900/80 border border-slate-700/80 text-[11px] focus:outline-none focus:ring-1 focus:ring-cyan-400/80"
+              />
+            </label>
+          </div>
+        </section>
+
+        <!-- Export -->
+        <section class="rounded-2xl bg-slate-950/40 border border-slate-700/80 px-3 py-2.5 flex flex-col gap-2">
+          <header class="flex items-center justify-between text-[11px]">
+            <span class="uppercase tracking-[0.2em] text-slate-400/90">
+              Library
+            </span>
+            <span class="text-[10px] text-slate-500/80">Export / backup</span>
+          </header>
+          <div class="flex flex-wrap gap-2 text-[11px]">
+            <button id="exportJsonBtn"
+                    class="flex-1 inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-cyan-400/60 text-cyan-100 hover:bg-cyan-500/15 transition-all">
+              Export JSON
+            </button>
+            <button id="exportTxtBtn"
+                    class="flex-1 inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-600/80 text-slate-100 hover:bg-slate-700/80 transition-all">
+              Export TXT
+            </button>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Main content -->
+      <section id="videoGridWrapper" class="flex-1 flex flex-col gap-3 min-w-0">
+
+        <!-- Drag & drop / paste zone -->
+        <div id="dropZone"
+             class="glass-card neon-border rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center relative overflow-hidden transition-all duration-300">
+          <div class="absolute inset-0 opacity-40 pointer-events-none mix-blend-screen">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_0_0,#22d3ee33,transparent_60%),radial-gradient(circle_at_100%_100%,#f9731633,transparent_60%)]"></div>
+          </div>
+          <div class="relative flex-1 flex items-start gap-3">
+            <div class="flex-shrink-0 mt-0.5">
+              <div class="h-10 w-10 rounded-3xl border border-cyan-400/70 bg-slate-950/60 flex items-center justify-center shadow-neon-cyan">
+                <span class="text-xl -translate-y-[1px]">⬇</span>
+              </div>
+            </div>
+            <div class="flex-1">
+              <h2 class="text-sm sm:text-base font-semibold flex items-center gap-2">
+                Drop links here
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/70 text-cyan-100 uppercase tracking-[0.17em]">
+                  D&amp;D / paste
+                </span>
+              </h2>
+              <p class="text-xs text-slate-200/80 mt-1">
+                Drag YouTube URLs from your browser, or paste a batch below. Duplicate policy &amp; default category are applied automatically.
+              </p>
+              <div class="mt-2.5 flex flex-col sm:flex-row gap-2">
+                <textarea
+                  id="pasteInput"
+                  rows="2"
+                  placeholder="Paste one or multiple YouTube links (newline or comma separated)…"
+                  class="flex-1 text-xs rounded-2xl bg-slate-950/75 border border-slate-700/80 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400/80 text-slate-50 placeholder:text-slate-500/90 resize-none"
+                ></textarea>
+                <button id="addPastedBtn"
+                        class="sm:self-stretch inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-2xl bg-cyan-400 text-slate-950 text-xs font-semibold tracking-wide hover:bg-cyan-300 transition-all shadow-neon-cyan">
+                  Add pasted
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="relative flex flex-col gap-2 text-[10px] text-slate-200/90">
+            <div class="px-2 py-1 rounded-xl bg-slate-950/60 border border-slate-700/80 flex flex-col gap-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="uppercase tracking-[0.18em] text-slate-400/90">
+                  Dropzone
+                </span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-800/80 text-slate-200">
+                  Simulated
+                </span>
+              </div>
+              <p class="text-[10px] text-slate-300/90">
+                URL parsing, duplicate detection &amp; category routing are handled client-side for this demo.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shorts row -->
+        <section class="glass-card rounded-3xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col gap-2.5 shadow-lg shadow-black/40">
+          <header class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center justify-center h-7 w-7 rounded-2xl bg-pink-500/20 border border-pink-400/70 shadow-neon-pink">
+                <span class="text-xs font-semibold">S</span>
+              </span>
+              <div>
+                <h3 class="text-sm font-semibold flex items-center gap-2">
+                  Shorts lane
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-pink-500/15 border border-pink-400/70 text-pink-100 uppercase tracking-[0.16em]">
+                    Snap scroll
+                  </span>
+                </h3>
+                <p class="text-[11px] text-slate-300/85 hidden sm:block">
+                  Vertical content pinned in a horizontal neon rail.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button id="shortsPrev"
+                      class="inline-flex items-center justify-center h-8 w-8 rounded-2xl bg-slate-950/60 border border-slate-700/80 hover:bg-slate-800/80 transition-all text-xs">
+                ←
+              </button>
+              <button id="shortsNext"
+                      class="inline-flex items-center justify-center h-8 w-8 rounded-2xl bg-slate-950/60 border border-slate-700/80 hover:bg-slate-800/80 transition-all text-xs">
+                →
+              </button>
+            </div>
+          </header>
+          <div class="relative mt-1">
+            <div id="shortsScroller"
+                 class="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 pt-1">
+              <!-- populated via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Video grid -->
+        <section class="flex-1 glass-card rounded-3xl p-3 sm:p-4 flex flex-col gap-3 shadow-xl shadow-black/40 min-h-[280px]">
+          <header class="flex items-center justify-between gap-2 mb-1">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-7 w-7 rounded-2xl bg-slate-950/60 border border-slate-700/80 items-center justify-center">
+                <span class="w-3 h-3 rounded-[7px] border border-slate-300/80 grid grid-cols-2 gap-[1px]">
+                  <span class="bg-slate-200/90 rounded-[5px]"></span>
+                  <span class="bg-slate-200/50 rounded-[5px]"></span>
+                  <span class="bg-slate-200/70 rounded-[5px]"></span>
+                  <span class="bg-slate-200/40 rounded-[5px]"></span>
+                </span>
+              </span>
+              <div>
+                <h3 class="text-sm sm:text-base font-semibold">
+                  Library view
+                </h3>
+                <p class="text-[11px] text-slate-300/85 hidden sm:block">
+                  Dynamic grid/list morph, animated cards, in-place category edits.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-slate-300/90">
+              <span id="totalCountLabel">0 links</span>
+            </div>
+          </header>
+
+          <div id="videoGrid" data-view="grid" style="--cols:4;">
+            <!-- cards via JS -->
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <!-- Toast container -->
+  <div id="toastContainer"
+       class="pointer-events-none fixed inset-0 z-50 flex items-start justify-end px-3 sm:px-4 py-4"></div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const body = document.body;
+
+    const state = {
+      theme: "glass",
+      view: "grid",
+      cardsPerRow: 4,
+      multiCategory: false,
+      rateLimit: 30,
+      linksSet: new Set(),
+      themes: ["glass", "neon", "tiktok"],
+    };
+
+    const videoGrid = document.getElementById("videoGrid");
+    const cardsPerRowSlider = document.getElementById("cardsPerRowSlider");
+    const cardsPerRowLabel = document.getElementById("cardsPerRowLabel");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
+    const duplicateHandlingSelect = document.getElementById("duplicateHandling");
+    const rateLimitInput = document.getElementById("rateLimitInput");
+    const multiCategoryToggle = document.getElementById("multiCategoryToggle");
+    const totalCountLabel = document.getElementById("totalCountLabel");
+
+    const dropZone = document.getElementById("dropZone");
+    const pasteInput = document.getElementById("pasteInput");
+    const addPastedBtn = document.getElementById("addPastedBtn");
+
+    const categoryList = document.getElementById("categoryList");
+    const defaultCategorySelect = document.getElementById("defaultCategorySelect");
+    const newCategoryInput = document.getElementById("newCategoryInput");
+    const addCategoryBtn = document.getElementById("addCategoryBtn");
+
+    const exportJsonBtn = document.getElementById("exportJsonBtn");
+    const exportTxtBtn = document.getElementById("exportTxtBtn");
+    const saveLibraryBtn = document.getElementById("saveLibraryBtn");
+
+    const shortsScroller = document.getElementById("shortsScroller");
+    const shortsPrev = document.getElementById("shortsPrev");
+    const shortsNext = document.getElementById("shortsNext");
+
+    const toastContainer = document.getElementById("toastContainer");
+
+    const gridViewButton = document.getElementById("gridViewButton");
+    const listViewButton = document.getElementById("listViewButton");
+    const fullscreenToggle = document.getElementById("fullscreenToggle");
+    const quickControls = document.getElementById("quickControls");
+
+    const themeButtons = Array.from(document.querySelectorAll(".theme-btn"));
+    const viewButtons = Array.from(document.querySelectorAll(".view-btn"));
+    const themeCycleBtn = document.querySelector(".theme-cycle");
+    const exitFullscreenBtns = Array.from(document.querySelectorAll(".exit-fullscreen-btn"));
+
+    /* --- Sample data --- */
+    const sampleVideos = [
+      {
+        url: "https://www.youtube.com/watch?v=1",
+        title: "Deep Focus Synthwave • 4K Coding Session",
+        channel: "Neon City Records",
+        duration: "3:45:12",
+        tags: "synthwave, focus, coding",
+        category: "Watch Later",
+        addedAt: Date.now() - 1000 * 60 * 30,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=2",
+        title: "UI/UX in 2025 – Dark Mode Done Right",
+        channel: "Future Frames",
+        duration: "21:09",
+        tags: "ui, design, case-study",
+        category: "Research",
+        addedAt: Date.now() - 1000 * 60 * 60,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=3",
+        title: "LoFi Tokyo Night • Beats to Code & Chill",
+        channel: "Tokyo LoFi",
+        duration: "2:12:45",
+        tags: "lofi, chill, study",
+        category: "Music",
+        addedAt: Date.now() - 1000 * 60 * 60 * 5,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=4",
+        title: "React Performance Masterclass",
+        channel: "Frontend Vault",
+        duration: "1:13:32",
+        tags: "react, performance, tutorial",
+        category: "Research",
+        addedAt: Date.now() - 1000 * 60 * 20,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=5",
+        title: "System Design for Frontend Engineers",
+        channel: "ArchTalks",
+        duration: "58:41",
+        tags: "architecture, system-design",
+        category: "Watch Later",
+        addedAt: Date.now() - 1000 * 60 * 120,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=6",
+        title: "Building Glassmorphism Dashboards",
+        channel: "Crystal UI",
+        duration: "17:55",
+        tags: "glassmorphism, dashboard, css",
+        category: "Design",
+        addedAt: Date.now() - 1000 * 60 * 10,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=7",
+        title: "TailwindCSS Motion & Micro-interactions",
+        channel: "Motion Labs",
+        duration: "29:37",
+        tags: "tailwind, animation, ux",
+        category: "Research",
+        addedAt: Date.now() - 1000 * 60 * 90,
+      },
+      {
+        url: "https://www.youtube.com/watch?v=8",
+        title: "Next.js App Router – Production Patterns",
+        channel: "Ship Fast",
+        duration: "42:06",
+        tags: "nextjs, production, patterns",
+        category: "Watch Later",
+        addedAt: Date.now() - 1000 * 60 * 15,
+      },
+    ];
+
+    const sampleShorts = [
+      { url: "https://www.youtube.com/shorts/1", title: "CSS Tip: Neon Borders", channel: "Pixel Shot", duration: "0:34" },
+      { url: "https://www.youtube.com/shorts/2", title: "Tiny UX Micro-interaction", channel: "UX Snacks", duration: "0:19" },
+      { url: "https://www.youtube.com/shorts/3", title: "Glassmorphism in 15s", channel: "Crystal UI", duration: "0:15" },
+      { url: "https://www.youtube.com/shorts/4", title: "Grid vs List Debate", channel: "Frontend Hot Takes", duration: "0:41" },
+      { url: "https://www.youtube.com/shorts/5", title: "Algorithm for Color Tokens", channel: "Tokenize", duration: "0:30" },
+    ];
+
+    const defaultCategories = ["Watch Later", "Research", "Music", "Podcasts", "Design"];
+
+    /* --- Toast system --- */
+    function showToast(type, message) {
+      const palette = {
+        success: { border: "border-emerald-400/70", bg: "bg-emerald-500/15", text: "text-emerald-100", title: "Success" },
+        warning: { border: "border-amber-400/80", bg: "bg-amber-500/15", text: "text-amber-50", title: "Heads up" },
+        error: { border: "border-rose-400/80", bg: "bg-rose-500/15", text: "text-rose-50", title: "Error" },
+        info: { border: "border-cyan-400/80", bg: "bg-cyan-500/15", text: "text-cyan-50", title: "Info" },
+      }[type || "info"];
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "pointer-events-auto toast-enter mb-2 w-full max-w-xs sm:max-w-sm";
+
+      const inner = document.createElement("div");
+      inner.className = `glass-card rounded-2xl px-3 py-2.5 border ${palette.border} ${palette.bg} ${palette.text}` +
+        " shadow-lg shadow-black/40 text-xs flex gap-2 items-start";
+
+      inner.innerHTML = `
+        <div class="mt-0.5">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-xl bg-slate-950/60 border border-white/10 text-[11px]">
+            ${type === "success" ? "✓" : type === "warning" ? "!" : type === "error" ? "⨯" : "i"}
+          </span>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between gap-2 mb-0.5">
+            <span class="font-semibold text-[11px]">${palette.title}</span>
+            <button class="text-[10px] text-slate-300/80 hover:text-white close-toast-btn">Close</button>
+          </div>
+          <p class="text-[11px] leading-snug">${message}</p>
+        </div>
+      `;
+
+      wrapper.appendChild(inner);
+      toastContainer.appendChild(wrapper);
+
+      const remove = () => {
+        wrapper.classList.add("opacity-0", "translate-y-2");
+        setTimeout(() => wrapper.remove(), 180);
+      };
+
+      wrapper.querySelector(".close-toast-btn").addEventListener("click", remove);
+      setTimeout(remove, 3800);
+    }
+
+    /* --- Theme handling --- */
+    function setTheme(theme) {
+      state.theme = theme;
+      body.dataset.theme = theme;
+      themeButtons.forEach(btn => {
+        const option = btn.getAttribute("data-theme-option");
+        btn.dataset.active = option === theme ? "true" : "false";
+      });
+    }
+
+    themeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const chosen = btn.getAttribute("data-theme-option");
+        setTheme(chosen);
+        showToast("info", `Theme switched to ${chosen.charAt(0).toUpperCase() + chosen.slice(1)}.`);
+      });
+    });
+
+    if (themeCycleBtn) {
+      themeCycleBtn.addEventListener("click", () => {
+        const idx = state.themes.indexOf(state.theme);
+        const next = state.themes[(idx + 1) % state.themes.length];
+        setTheme(next);
+        showToast("info", `Theme cycled to ${next}.`);
+      });
+    }
+
+    /* --- View mode --- */
+    function setView(view) {
+      state.view = view;
+      videoGrid.setAttribute("data-view", view);
+      viewButtons.forEach(btn => {
+        const option = btn.getAttribute("data-view-option");
+        btn.dataset.active = option === view ? "true" : "false";
+      });
+    }
+
+    gridViewButton.addEventListener("click", () => setView("grid"));
+    listViewButton.addEventListener("click", () => setView("list"));
+
+    /* --- Cards per row slider --- */
+    function updateCardsPerRow(value) {
+      state.cardsPerRow = value;
+      videoGrid.style.setProperty("--cols", value);
+      cardsPerRowLabel.textContent = value;
+    }
+
+    cardsPerRowSlider.addEventListener("input", (e) => {
+      updateCardsPerRow(e.target.value);
+    });
+
+    /* --- Multi-category toggle --- */
+    multiCategoryToggle.addEventListener("click", () => {
+      state.multiCategory = !state.multiCategory;
+      multiCategoryToggle.classList.toggle("bg-cyan-500/40", state.multiCategory);
+      multiCategoryToggle.classList.toggle("border-cyan-300/80", state.multiCategory);
+
+      const handle = multiCategoryToggle.querySelector(".toggle-handle");
+      if (handle) {
+        handle.style.transform = state.multiCategory ? "translateX(16px)" : "translateX(0px)";
+        handle.classList.toggle("bg-cyan-100", state.multiCategory);
+        handle.classList.toggle("bg-slate-400", !state.multiCategory);
+      }
+
+      showToast("info", state.multiCategory
+        ? "Multi-category mode enabled. Links can belong to multiple buckets."
+        : "Multi-category mode disabled. Links are single-homed.");
+    });
+
+    /* --- Rate limit --- */
+    rateLimitInput.addEventListener("change", (e) => {
+      const val = parseInt(e.target.value, 10) || 1;
+      state.rateLimit = val;
+      e.target.value = val;
+      showToast("info", `Rate limit capped at ${val} requests/min for simulations.`);
+    });
+
+    /* --- Category management --- */
+    function renderCategories(initialCategories) {
+      categoryList.innerHTML = "";
+      const cats = initialCategories || defaultCategories;
+      cats.forEach(cat => addCategoryElement(cat));
+      syncCategorySelect();
+    }
+
+    function addCategoryElement(name) {
+      const li = document.createElement("li");
+      li.className =
+        "category-item flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl bg-slate-900/70 border border-slate-700/80 cursor-move hover:border-cyan-400/70 hover:bg-slate-900 transition-all text-[11px]";
+      li.setAttribute("draggable", "true");
+      li.dataset.category = name;
+
+      li.innerHTML = `
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="drag-handle inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-950/70 border border-slate-700/80 text-[10px] text-slate-300/90">≡</span>
+          <span class="truncate">${name}</span>
+        </div>
+        <button class="remove-category text-[10px] text-slate-400 hover:text-rose-300 px-1">
+          ✕
+        </button>
+      `;
+      categoryList.appendChild(li);
+
+      const removeBtn = li.querySelector(".remove-category");
+      removeBtn.addEventListener("click", () => {
+        if (categoryList.children.length <= 1) {
+          showToast("warning", "At least one category has to remain.");
+          return;
+        }
+        li.remove();
+        syncCategorySelect();
+      });
+    }
+
+    function syncCategorySelect() {
+      const cats = Array.from(categoryList.querySelectorAll(".category-item"))
+        .map(li => li.dataset.category);
+
+      defaultCategorySelect.innerHTML = "";
+      cats.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        defaultCategorySelect.appendChild(option);
+      });
+    }
+
+    let draggedCategory = null;
+    categoryList.addEventListener("dragstart", (e) => {
+      const li = e.target.closest(".category-item");
+      if (!li) return;
+      draggedCategory = li;
+      li.classList.add("ring-1", "ring-cyan-400/80", "bg-slate-900");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    categoryList.addEventListener("dragend", () => {
+      if (!draggedCategory) return;
+      draggedCategory.classList.remove("ring-1", "ring-cyan-400/80", "bg-slate-900");
+      draggedCategory = null;
+      syncCategorySelect();
+      showToast("info", "Categories reordered.");
+    });
+    categoryList.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      const target = e.target.closest(".category-item");
+      if (!target || target === draggedCategory) return;
+      const rect = target.getBoundingClientRect();
+      const offset = e.clientY - rect.top;
+      if (offset > rect.height / 2) {
+        target.after(draggedCategory);
+      } else {
+        target.before(draggedCategory);
+      }
+    });
+    categoryList.addEventListener("drop", (e) => {
+      e.preventDefault();
+    });
+
+    addCategoryBtn.addEventListener("click", () => {
+      const name = newCategoryInput.value.trim();
+      if (!name) return;
+      const exists = Array.from(categoryList.querySelectorAll(".category-item"))
+        .some(li => li.dataset.category.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        showToast("warning", `Category "${name}" already exists.`);
+        return;
+      }
+      addCategoryElement(name);
+      syncCategorySelect();
+      newCategoryInput.value = "";
+      showToast("success", `Category "${name}" created.`);
+    });
+
+    newCategoryInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCategoryBtn.click();
+      }
+    });
+
+    /* --- Video card creation --- */
+    function durationToSeconds(duration) {
+      const parts = duration.split(":").map(p => parseInt(p, 10) || 0);
+      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      if (parts.length === 2) return parts[0] * 60 + parts[1];
+      return 0;
+    }
+
+    function createVideoCard(video) {
+      const article = document.createElement("article");
+      article.className =
+        "video-card group relative rounded-3xl border border-slate-700/80 bg-slate-950/70 overflow-hidden " +
+        "shadow-lg shadow-black/50 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(34,211,238,0.35)] hover:border-cyan-400/80 cursor-pointer";
+      article.dataset.url = video.url;
+      article.dataset.title = video.title.toLowerCase();
+      article.dataset.channel = video.channel.toLowerCase();
+      article.dataset.duration = durationToSeconds(video.duration);
+      article.dataset.tags = (video.tags || "").toLowerCase();
+      article.dataset.addedAt = video.addedAt;
+
+      article.innerHTML = `
+        <div class="card-inner flex flex-col gap-3 p-2.5">
+          <div class="thumb-wrap relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 via-slate-900 to-slate-950">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_0_0,#22d3ee33,transparent_55%),radial-gradient(circle_at_100%_100%,#f9731633,transparent_55%)]"></div>
+            <div class="aspect-video relative">
+              <div class="absolute inset-0">
+                <div class="w-full h-full bg-[radial-gradient(circle_at_50%_0,#22d3ee33,transparent_55%),radial-gradient(circle_at_100%_100%,#f9731633,transparent_60%)] opacity-70"></div>
+              </div>
+              <div class="absolute inset-0 bg-[url('https://images.pexels.com/photos/2706379/pexels-photo-2706379.jpeg?auto=compress&cs=tinysrgb&w=1600')] bg-cover bg-center mix-blend-soft-light opacity-60"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/10"></div>
+
+              <button class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <span class="inline-flex items-center justify-center h-11 w-11 rounded-full bg-slate-950/80 border border-cyan-400/90 shadow-neon-cyan">
+                  <span class="ml-0.5 border-l-[6px] border-y-[5px] border-y-transparent border-l-white"></span>
+                </span>
+              </button>
+
+              <div class="absolute bottom-2 right-2 px-1.5 py-1 rounded-2xl bg-slate-950/80 border border-slate-500/80 text-[10px] text-slate-100 font-medium">
+                ${video.duration}
+              </div>
+
+              <a href="${video.url}" target="_blank" rel="noopener"
+                 class="absolute bottom-2 left-2 px-1.5 py-1 rounded-2xl bg-slate-950/80 border border-cyan-400/80 text-[10px] text-cyan-100 hover:bg-cyan-500/20 transition-colors">
+                Open on YouTube
+              </a>
+            </div>
+          </div>
+
+          <div class="meta-wrap flex flex-col gap-2">
+            <div class="flex items-start gap-2">
+              <div class="flex-shrink-0">
+                <div class="h-7 w-7 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-[10px] font-semibold text-slate-900 border border-white/50">
+                  ${video.channel.slice(0,2).toUpperCase()}
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h4 class="text-xs sm:text-sm font-semibold leading-snug line-clamp-2 text-slate-50">
+                  ${video.title}
+                </h4>
+                <p class="text-[11px] text-slate-400/90 mt-0.5">
+                  ${video.channel}
+                </p>
+              </div>
+              <button class="delete-card flex-shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-slate-950/70 border border-slate-700/80 text-[11px] text-slate-400 hover:text-rose-300 hover:border-rose-400 hover:bg-rose-500/10 transition-all">
+                ✕
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select class="category-select text-[11px] rounded-xl bg-slate-950/90 border border-slate-700/80 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-400/80">
+                ${Array.from(defaultCategorySelect.options).map(o =>
+                `<option value="${o.value}" ${o.value === (video.category || defaultCategorySelect.value) ? "selected" : ""}>${o.value}</option>`
+                ).join("")}
+              </select>
+              <div class="flex flex-wrap gap-1 text-[10px] text-slate-300/90">
+                ${(video.tags || "").split(",").filter(Boolean).slice(0,3).map(tag =>
+                  `<span class="px-1.5 py-0.5 rounded-full bg-slate-900/80 border border-slate-700/80">#${tag.trim()}</span>`
+                ).join("")}
+              </div>
+            </div>
   <!-- MAIN -->
   <main class="flex-1">
     <div class="max-w-7xl mx-auto px-5 py-6 grid lg:grid-cols-[260px_1fr] gap-6">
@@ -201,8 +951,77 @@
             </div>
           </div>
         </div>
+      `;
 
+      article.addEventListener("click", (e) => {
+        const target = e.target;
+        if (target.closest("button") || target.closest("a") || target.closest("select") || target.closest("textarea") || target.closest("input")) {
+          return;
+        }
+        window.open(video.url, "_blank", "noopener");
+      });
 
+      const deleteBtn = article.querySelector(".delete-card");
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        article.classList.add("opacity-0", "scale-[0.97]", "translate-y-1");
+        setTimeout(() => {
+          article.remove();
+          state.linksSet.delete(video.url);
+          updateCountLabel();
+          showToast("info", "Link removed from LinkCascade.");
+        }, 150);
+      });
+
+      const categorySelect = article.querySelector(".category-select");
+      categorySelect.addEventListener("change", (e) => {
+        showToast("success", `Category set to "${e.target.value}".`);
+      });
+
+      videoGrid.appendChild(article);
+      updateCountLabel();
+    }
+
+    function updateCountLabel() {
+      const count = videoGrid.querySelectorAll(".video-card").length;
+      totalCountLabel.textContent = `${count} link${count === 1 ? "" : "s"}`;
+    }
+
+    function renderShorts() {
+      shortsScroller.innerHTML = "";
+      sampleShorts.forEach(short => {
+        const card = document.createElement("a");
+        card.href = short.url;
+        card.target = "_blank";
+        card.rel = "noopener";
+        card.className =
+          "snap-center min-w-[120px] sm:min-w-[140px] max-w-[140px] rounded-3xl border border-pink-400/70 bg-slate-950/80 overflow-hidden shadow-neon-pink hover:-translate-y-0.5 transition-all duration-200 flex-shrink-0";
+        card.innerHTML = `
+          <div class="relative aspect-[9/16] bg-gradient-to-b from-pink-500/40 via-slate-900 to-slate-950">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_0_0,#22d3ee33,transparent_60%),radial-gradient(circle_at_100%_100%,#f9731633,transparent_60%)] opacity-80"></div>
+            <div class="absolute inset-0 flex items-end">
+              <div class="p-2 w-full flex flex-col gap-1">
+                <p class="text-[10px] font-semibold line-clamp-2">
+                  ${short.title}
+                </p>
+                <p class="text-[9px] text-slate-300/90">
+                  ${short.channel}
+                </p>
+                <div class="flex items-center justify-between text-[9px] text-slate-100 mt-1">
+                  <span class="px-1 py-0.5 rounded-full bg-slate-950/70 border border-pink-300/80">
+                    ${short.duration}
+                  </span>
+                  <span class="px-1 py-0.5 rounded-full bg-slate-950/70 border border-slate-600/80">
+                    Short
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        shortsScroller.appendChild(card);
+      });
+    }
 
       <!-- CONTENT -->
       <section class="space-y-5">
@@ -240,11 +1059,218 @@
         <section id="links-container" class="space-y-4"></section>
       </section>
 
-    </div>
-  </main>
+    shortsPrev.addEventListener("click", () => {
+      shortsScroller.scrollBy({ left: -240, behavior: "smooth" });
+    });
+    shortsNext.addEventListener("click", () => {
+      shortsScroller.scrollBy({ left: 240, behavior: "smooth" });
+    });
 
-</div>
+    function sortCards(mode) {
+      const cards = Array.from(videoGrid.querySelectorAll(".video-card"));
+      const gridIsList = state.view === "list";
 
-<script src="/static/app.js"></script>
+      cards.sort((a, b) => {
+        const titleA = a.dataset.title || "";
+        const titleB = b.dataset.title || "";
+        const chA = a.dataset.channel || "";
+        const chB = b.dataset.channel || "";
+        const addedA = Number(a.dataset.addedAt || 0);
+        const addedB = Number(b.dataset.addedAt || 0);
+        const durA = Number(a.dataset.duration || 0);
+        const durB = Number(b.dataset.duration || 0);
+        switch (mode) {
+          case "az":
+            return titleA.localeCompare(titleB);
+          case "za":
+            return titleB.localeCompare(titleA);
+          case "oldest":
+            return addedA - addedB;
+          case "duration":
+            return durA - durB;
+          case "channel":
+            return chA.localeCompare(chB);
+          default:
+            return addedB - addedA;
+        }
+      });
+
+      cards.forEach(card => videoGrid.appendChild(card));
+      setView(gridIsList ? "list" : "grid");
+    }
+
+    sortSelect.addEventListener("change", () => {
+      sortCards(sortSelect.value);
+      showToast("info", `Sorted by ${sortSelect.options[sortSelect.selectedIndex].text}.`);
+    });
+
+    function applySearchFilter() {
+      const query = (searchInput.value || "").toLowerCase().trim();
+      const cards = Array.from(videoGrid.querySelectorAll(".video-card"));
+      cards.forEach(card => {
+        const haystack = [card.dataset.title || "", card.dataset.channel || "", card.dataset.tags || ""].join(" ");
+        const matches = !query || haystack.includes(query);
+        card.classList.toggle("hidden", !matches);
+        card.classList.toggle("opacity-40", query && matches);
+      });
+    }
+
+    searchInput.addEventListener("input", applySearchFilter);
+
+    ["dragenter", "dragover"].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add("dropzone-glow", "animate-bounce-once");
+      });
+    });
+    ["dragleave", "drop"].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove("dropzone-glow", "animate-bounce-once");
+      });
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      let text = dt.getData("text/uri-list") || dt.getData("text/plain") || "";
+      if (!text.trim()) return;
+      const urls = extractUrls(text);
+      if (!urls.length) {
+        showToast("warning", "No valid URLs detected in drop payload.");
+        return;
+      }
+      urls.forEach(url => handleNewLink(url));
+    });
+
+    function extractUrls(text) {
+      const rough = text.split(/[\s,\n]+/).map(s => s.trim()).filter(Boolean);
+      return rough.filter(u => /^https?:\/\//i.test(u));
+    }
+
+    addPastedBtn.addEventListener("click", () => {
+      const raw = pasteInput.value.trim();
+      if (!raw) {
+        showToast("warning", "Paste at least one URL.");
+        return;
+      }
+      const urls = extractUrls(raw);
+      if (!urls.length) {
+        showToast("warning", "No valid URLs found in the pasted content.");
+        return;
+      }
+      urls.forEach(url => handleNewLink(url));
+      pasteInput.value = "";
+    });
+
+    function handleNewLink(url) {
+      const mode = duplicateHandlingSelect.value;
+      const isDuplicate = state.linksSet.has(url);
+      if (isDuplicate) {
+        if (mode === "ignore") return;
+        if (mode === "block") {
+          showToast("error", "Duplicate link blocked by policy.");
+          return;
+        }
+        if (mode === "warn") showToast("warning", "Duplicate link detected. Keeping anyway.");
+      }
+
+      const inferredTitle = url.length > 40 ? url.slice(0, 37) + "…" : url;
+      const video = {
+        url,
+        title: "New: " + inferredTitle,
+        channel: "Imported Link",
+        duration: "10:00",
+        tags: "imported, unsorted",
+        category: defaultCategorySelect.value || "Watch Later",
+        addedAt: Date.now(),
+      };
+
+      createVideoCard(video);
+      state.linksSet.add(url);
+      sortCards(sortSelect.value);
+      showToast("success", "Link ingested into LinkCascade.");
+    }
+
+    function collectCards() {
+      return Array.from(videoGrid.querySelectorAll(".video-card")).map(card => {
+        const select = card.querySelector(".category-select");
+        return {
+          title: (card.dataset.title || "").trim(),
+          url: card.dataset.url || "",
+          channel: card.dataset.channel || "",
+          durationSeconds: Number(card.dataset.duration || 0),
+          category: select ? select.value : "",
+          tags: (card.dataset.tags || "").split(",").map(t => t.trim()).filter(Boolean),
+          addedAt: Number(card.dataset.addedAt || 0),
+        };
+      });
+    }
+
+    function exportLibrary(format) {
+      const items = collectCards();
+      const text = format === "json"
+        ? JSON.stringify(items, null, 2)
+        : items.map(c => `${c.title} | ${c.url} | ${c.channel} | ${c.durationSeconds}s | ${c.category}`).join("\n");
+
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = format === "json" ? "linkcascade-library.json" : "linkcascade-library.txt";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      showToast("success", `Library exported as ${format.toUpperCase()}.`);
+    }
+
+    exportJsonBtn.addEventListener("click", () => exportLibrary("json"));
+    exportTxtBtn.addEventListener("click", () => exportLibrary("txt"));
+
+    saveLibraryBtn.addEventListener("click", () => {
+      const roll = Math.random();
+      if (roll < 0.15) showToast("error", "Network error while syncing to cloud. Try again.");
+      else showToast("success", "Library snapshot synced to cloud (simulated).");
+    });
+
+    function setFullscreenMode(on) {
+      body.classList.toggle("fullscreen-mode", on);
+      if (on) {
+        quickControls.classList.remove("pointer-events-none");
+        quickControls.classList.add("opacity-100");
+      } else {
+        quickControls.classList.add("pointer-events-none");
+        quickControls.classList.remove("opacity-100");
+      }
+    }
+
+    fullscreenToggle.addEventListener("click", () => {
+      const goingFullscreen = !body.classList.contains("fullscreen-mode");
+      setFullscreenMode(goingFullscreen);
+      showToast("info", goingFullscreen
+        ? "Fullscreen layout enabled. Sidebar shifted to the right."
+        : "Fullscreen layout exited.");
+    });
+
+    exitFullscreenBtns.forEach(btn => btn.addEventListener("click", () => setFullscreenMode(false)));
+
+    function init() {
+      setTheme("glass");
+      setView("grid");
+      updateCardsPerRow(4);
+      renderCategories();
+      renderShorts();
+      sampleVideos.forEach(v => { state.linksSet.add(v.url); createVideoCard(v); });
+      sortCards("newest");
+      applySearchFilter();
+    }
+
+    init();
+  });
+</script>
 </body>
 </html>
