@@ -38,10 +38,10 @@
     <div class="max-w-6xl mx-auto px-4 py-4 space-y-4">
 
       <!-- TOP CONTROLS -->
-      <section class="grid md:grid-cols-2 gap-4">
+      <section class="grid md:grid-cols-3 gap-4">
 
         <!-- LEFT: CATEGORIES & EXPORT -->
-        <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-lg shadow-slate-900/40">
+        <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-lg shadow-slate-900/40 md:col-span-2">
           <h2 class="text-sm font-semibold mb-3 flex items-center gap-2">
             Categories & Export
           </h2>
@@ -123,6 +123,50 @@
             </div>
             <!-- ───── END NEW UI CONTROLS ───── -->
 
+          </div>
+        </div>
+
+        <!-- PREFS & DUPES -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-lg shadow-slate-900/40">
+          <h2 class="text-sm font-semibold mb-3 flex items-center gap-2">
+            Preferences & Queue
+          </h2>
+
+          <div class="space-y-3 text-xs">
+            <div class="flex flex-col gap-2">
+              <label class="text-slate-400">Duplicate policy</label>
+              <select id="duplicate-policy" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                <option value="block_category">Block duplicates inside same category</option>
+                <option value="warn_global">Warn on global duplicates but allow</option>
+                <option value="allow_all">Allow all duplicates</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-slate-400">Category ordering</label>
+              <select id="category-order" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+                <option value="recent">Most recently updated</option>
+                <option value="alphabetical">Alphabetical</option>
+                <option value="most_items">Most items first</option>
+                <option value="pinned_first">Pinned first</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">Per-second limit</span>
+              <input id="limit-second" type="number" min="1" max="40" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs" />
+              <span class="text-slate-400">Per-minute</span>
+              <input id="limit-minute" type="number" min="1" max="300" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs" />
+              <button id="save-prefs" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-medium">Save</button>
+            </div>
+
+            <div class="bg-slate-950/70 border border-slate-800 rounded-lg p-2">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] text-slate-300">Pending queue</span>
+                <span id="queue-count" class="text-[10px] text-slate-500">0</span>
+              </div>
+              <div id="queue-list" class="flex flex-col gap-1 max-h-40 overflow-y-auto text-[10px]"></div>
+            </div>
           </div>
         </div>
 
