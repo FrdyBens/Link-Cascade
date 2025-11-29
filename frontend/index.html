@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Link Organizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-slate-950 text-slate-100">
+<div id="app-root" class="min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">YouTube Link Organizer</h1>
+        <p class="text-xs text-slate-400">Drag, drop, sort, export. No playlist junk, no dupes.</p>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400">Theme:</span>
+          <select id="theme-select"
+                  class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs">
+            <option value="glass">B — Glassmorphic</option>
+            <option value="neon">C — Neo Neon</option>
+            <option value="tiktok">D — TikTok Dark</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- MAIN -->
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 py-4 space-y-4">
+
+      <!-- TOP CONTROLS -->
+      <section class="grid md:grid-cols-2 gap-4">
+
+        <!-- LEFT: CATEGORIES & EXPORT -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-lg shadow-slate-900/40">
+          <h2 class="text-sm font-semibold mb-3 flex items-center gap-2">
+            Categories & Export
+          </h2>
+
+          <div class="space-y-3 text-xs">
+
+            <!-- Add Category -->
+            <div class="flex gap-2">
+              <input id="new-category-input" type="text" placeholder="New category name"
+                     class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500">
+              <button id="add-category-btn"
+                      class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 text-xs font-medium">Add</button>
+            </div>
+
+            <!-- Default Category + Export Buttons -->
+            <div class="flex flex-wrap gap-3 items-center">
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400">Default category:</span>
+                <select id="category-select"
+                        class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs"></select>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <button id="export-json-btn"
+                        class="px-3 py-1 rounded border border-slate-600 text-xs hover:bg-slate-800">
+                  Export JSON
+                </button>
+                <button id="export-txt-btn"
+                        class="px-3 py-1 rounded border border-slate-600 text-xs hover:bg-slate-800">
+                  Export TXT
+                </button>
+                <button id="save-main-btn"
+                        class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-medium">
+                  Save Library
+                </button>
+              </div>
+            </div>
+
+
+            <!-- ───── NEW UI CONTROLS ADDED HERE ───── -->
+            <hr class="border-slate-700/60 my-3">
+
+            <div class="flex flex-col gap-3">
+
+              <!-- Cards per row slider -->
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400 text-xs">Cards per row:</span>
+                <input id="grid-columns-range" type="range" min="2" max="10" value="5"
+                       class="w-40 accent-sky-500">
+                <span id="grid-columns-value" class="text-xs w-5 text-right">5</span>
+              </div>
+
+              <!-- View mode -->
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400 text-xs">View:</span>
+                <button id="view-mode-grid"
+                        class="px-2 py-1 rounded bg-sky-700 text-[11px]">Grid</button>
+                <button id="view-mode-list"
+                        class="px-2 py-1 rounded bg-slate-700 text-[11px]">List</button>
+              </div>
+
+              <!-- Sort -->
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400 text-xs">Sort:</span>
+                <select id="sort-select"
+                        class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[11px]">
+                  <option value="newest">Newest → oldest</option>
+                  <option value="oldest">Oldest → newest</option>
+                  <option value="alpha">Title A → Z</option>
+                  <option value="duration">Duration (short → long)</option>
+                </select>
+              </div>
+
+              <!-- Search bar -->
+              <input id="search-input" type="text"
+                     placeholder="Search title, channel, URL, tags…"
+                     class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500"/>
+
+            </div>
+            <!-- ───── END NEW UI CONTROLS ───── -->
+
+          </div>
+        </div>
+
+
+        <!-- RIGHT: DROP ZONE -->
+        <div id="drop-zone"
+             class="bg-slate-900/70 border-2 border-dashed border-sky-600/70 rounded-xl p-4 text-center flex flex-col gap-3 items-center justify-center shadow-lg shadow-slate-900/40 transition">
+          <p class="text-sm font-medium">Drop YouTube URLs here</p>
+          <p class="text-xs text-slate-400">Or paste multiple links below and click "Add Pasted".</p>
+
+          <textarea id="paste-area"
+                    class="w-full mt-2 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs min-h-[70px] focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    placeholder="https://youtu.be/...\nhttps://www.youtube.com/watch?v=..."></textarea>
+
+          <button id="add-pasted-btn"
+                  class="mt-1 px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 text-xs font-medium">
+            Add Pasted URLs
+          </button>
+        </div>
+      </section>
+
+
+      <!-- LINK GRID RENDER -->
+      <section id="links-container" class="space-y-3">
+        <!-- dynamic -->
+      </section>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
